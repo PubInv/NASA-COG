@@ -42,6 +42,72 @@ using namespace OxCore;
 #include <stage2SerialReportTask.h>
 #include <serial_task.h>
 
+#include <menuIO/U8x8Out.h>
+#include <TimerOne.h>
+#include <ClickEncoder.h>
+#include <menuIO/clickEncoderIn.h>
+using namespace Menu;
+
+#define BEEPER_PIN 37 // buzzer pin
+//#define U8_MISO 50
+//#define U8_MOSI 51
+//#define U8_SCK  52
+//#define SDSS   53 //sd card ss select
+//#define CD     49  //sd card card detect
+#define U8_DC 16  //LCD A0  
+#define U8_CS 17 //D0LCD_CS
+#define U8_RST 23 //LCD_RESET_PIN  
+#define U8_Width 128
+#define U8_Height 64
+
+//#rst and kill are both pull down can be used to reset mcu. 
+//GPIO Defines
+#define encA               31
+#define encB               33
+#define encButton          35 
+#define LED_BUILTIN_RED    25 //active high
+#define LED_BUILTIN_GREEN  27 //active high
+#define LED_BUILTIN_BLUE   29 //active high
+
+U8X8_PCD8544_84X48_4W_HW_SPI u8x8(U8_CS, U8_DC , U8_RST);
+
+const char* constMEM hexDigit MEMMODE="0123456789ABCDEF";
+const char* constMEM hexNr[] MEMMODE={"0","x",hexDigit,hexDigit};
+char buf1[]="0x11";//<-- menu will edit this text
+
+ClickEncoder clickEncoder(encA,encB,encButton,2);
+ClickEncoderStream encStream(clickEncoder,1);
+MENU_INPUTS(in,&encStream);
+void timerIsr() {clickEncoder.service();}
+
+//define colors
+#define BLACK {0,0,0}
+#define BLUE {0,0,255}
+#define GRAY {128,128,128}
+#define WHITE {255,255,255}
+#define YELLOW {255,255,0}
+#define RED {255,0,0}
+
+const colorDef<rgb> my_colors[6] {
+  {{BLACK,BLACK},{BLACK,BLUE,BLUE}},//bgColor
+  {{GRAY,GRAY},{WHITE,WHITE,WHITE}},//fgColor
+  {{WHITE,BLACK},{YELLOW,YELLOW,RED}},//valColor
+  {{WHITE,BLACK},{WHITE,YELLOW,YELLOW}},//unitColor
+  {{WHITE,GRAY},{BLACK,BLUE,WHITE}},//cursorColor
+  {{WHITE,YELLOW},{BLUE,RED,RED}},//titleColor
+};
+
+#define offsetX 0
+#define offsetY 0
+
+#define MAX_DEPTH 2
+
+MENU_OUTPUTS(out,MAX_DEPTH
+  ,SERIAL_OUT(Serial)
+  ,U8X8_OUT(u8x8,{0,0,10,6})
+);
+
+NAVROOT(nav,mainMenu,MAX_DEPTH,serial,out);
 
 using namespace OxCore;
 static Core core;
@@ -77,6 +143,8 @@ Stage2SerialReportTask stage2SerialReportTask;
 
 SerialTask serialTask;
 
+
+
 void setup() {
 
  OxCore::serialBegin(115200UL);
@@ -89,6 +157,10 @@ void setup() {
     return;
   }
 
+  encoderIn<encA,encB> encoder;//simple quad encoder driver
+  
+  
+  
   machineConfig = new MachineConfig();
 
   machineConfig->hal = new MachineHAL();
@@ -104,8 +176,13 @@ void setup() {
     Serial.println("Could not init Hardware Abastraction Layer Properly!");
   }
 
+  //Hardware enable
   pinMode(RF_HEATER, OUTPUT);
-
+  pinMode(encButton,INPUT_PULLUP);
+  pinMode(LED_BUILTIN_RED,OUTPUT);
+  pinMode(LED_BUILTIN_GREEN,OUTPUT);
+  pinMode(LED_BUILTIN_BLUE,OUTPUT);
+  
   OxCore::TaskProperties cogProperties;
   cogProperties.name = "cog";
   cogProperties.id = 20;
@@ -262,11 +339,26 @@ void setup() {
   }
 
   OxCore::Debug<const char *>("Added tasks\n");
+  
+  OxCore::Debug<const char *>("Heater PID Controller");
+  lcd.begin(20,4);
+  nav.idleTask=idle;//point a function to be used when menu is suspended
+  mainMenu[1].enabled=disabledStatus;
+  nav.showTitle=false;
+  lcd.setCursor(0, 0);
+  lcd.print("Heater PID Controller");
+  lcd.setCursor(0, 1);
+  lcd.print("r-site.net");
+  Timer1.initialize(1000);
+  Timer1.attachInterrupt(timerIsr);
 }
 
 void loop() {
   OxCore::Debug<const char *>("Loop starting...\n");
-
+  nav.poll();
+  digitalWrite(LED_BUILTIN_RED, ledCtrlRed);
+  digitalWrite(LED_BUILTIN_GREEN, ledCtrlGreen);
+  digitalWrite(LED_BUILTIN_BLUE, ledCtrlBlue);
   delay(100);
   // Blocking call
   if (core.Run() == false) {
