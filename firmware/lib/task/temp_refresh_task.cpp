@@ -35,22 +35,38 @@ TempRefreshTask::TempRefreshTask() {
 bool TempRefreshTask::run() {
   _run();
 }
-  bool TempRefreshTask::_run()
-  {
-      if (DEBUG_TEMP_REFRESH > 0) {
-      OxCore::Debug<const char *>("TempRefreshTask run\n");
-    }
-
-    if (getConfig()->ms == Warmup) {
-      time_of_last_refresh = millis();
-      getConfig()->BEGIN_UP_TIME_MS = time_of_last_refresh;
-      getConfig()->RECENT_TEMPERATURE = getConfig()->report->post_heater_C;
-
-    } else if (getConfig()->ms == Cooldown) {
-      time_of_last_refresh = millis();
-      getConfig()->BEGIN_UP_TIME_MS = time_of_last_refresh;
-      getConfig()->COOL_DOWN_BEGIN_TEMPERATURE = getConfig()->report->post_heater_C;
-    }
-
-    return true;
+bool TempRefreshTask::_run()
+{
+  if (DEBUG_TEMP_REFRESH > 0) {
+    OxCore::Debug<const char *>("TempRefreshTask run\n");
   }
+  float t = max(max(getConfig()->report->post_heater_C,
+                    getConfig()->report->post_getter_C),
+                getConfig()->report->post_stack_C);
+
+  if (getConfig()->ms == Warmup) {
+    time_of_last_refresh = millis();
+
+    float max_t =MachineConfig::OPERATING_TEMPERATURE+MachineConfig::OPERATING_TEMPERATURE_OVERTARGET_DELTA;
+    t = min(t,max_t);
+
+    if (abs(t - getConfig()->RECENT_TEMPERATURE) > getConfig()->TEMP_REFRESH_LIMIT) {
+      getConfig()->BEGIN_UP_TIME_MS = time_of_last_refresh;
+      getConfig()->RECENT_TEMPERATURE = t;
+      getConfig()->TARGET_TEMP = t;
+    }
+
+
+  } else if (getConfig()->ms == Cooldown) {
+    t = min(t,MachineConfig::OPERATING_TEMPERATURE);
+
+    time_of_last_refresh = millis();
+    if (abs(t - getConfig()->RECENT_TEMPERATURE) > getConfig()->TEMP_REFRESH_LIMIT) {
+      getConfig()->BEGIN_UP_TIME_MS = time_of_last_refresh;
+      getConfig()->COOL_DOWN_BEGIN_TEMPERATURE = t;
+      getConfig()->TARGET_TEMP = t;
+    }
+  }
+
+  return true;
+}

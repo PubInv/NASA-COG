@@ -98,19 +98,22 @@ public:
 
   // This is the overall target_temp, which changes over time.
 
-  static constexpr float YELLOW_TEMPERATURE = 50.0;
-  static constexpr float RED_TEMPERATURE = 60.0;
-  static constexpr float OPERATING_TEMPERATURE = 40.0;
+  static constexpr float YELLOW_TEMPERATURE = 760.0;
+  static constexpr float RED_TEMPERATURE = 780.0;
+  static constexpr float OPERATING_TEMPERATURE = 740.0;
+  // Note! This is a difference (delta), not an absolute temperature
+  static constexpr float OPERATING_TEMPERATURE_OVERTARGET_DELTA = 10.0;
   static constexpr float STOP_TEMPERATURE = 27.0;
-  static constexpr float MAX_CROSS_STACK_TEMP = 4.0;
+  static constexpr float MAX_CROSS_STACK_TEMP = 40.0;
 
-  float RECENT_TEMPERATURE = 27.0;
+  float RECENT_TEMPERATURE = 30.0;
 
-  static constexpr float HIGH_TEMPERATURE_FAN_SLOW_DOWN_LIMIT = 500.0;
-  static constexpr float HIGH_TEMPERATURE_FAN_PWM = 0.4;
+  static constexpr float TEMP_REFRESH_LIMIT = 40.0;
+
+  static constexpr float HIGH_TEMPERATURE_FAN_SLOW_DOWN_LIMIT = 400.0;
 
   float COOL_DOWN_BEGIN_TEMPERATURE;
-  float TARGET_TEMP = 27.0;
+  float TARGET_TEMP = 30.0;
 
   static const unsigned long HOLD_TIME_MINUTES = 1;
   static const unsigned long HOLD_TIME_SECONDS = 60 * HOLD_TIME_MINUTES;
@@ -126,7 +129,7 @@ public:
   // FAN CONTROL
   static constexpr float FULL_POWER_FOR_FAN = 0.6;
   static constexpr float FAN_SPEED_AT_OPERATING_TEMP = 0.3;
-  static constexpr float TEMPERATURE_TO_BEGIN_FAN_SLOW_DOWN = OPERATING_TEMPERATURE - 50.0;
+  static constexpr float TEMPERATURE_TO_BEGIN_FAN_SLOW_DOWN = 500;
   static constexpr float END_FAN_SLOW_DOWN = OPERATING_TEMPERATURE + 25.0;
 
   // These parameters are related to our control procedure.
@@ -150,17 +153,13 @@ public:
   const int NUMBER_OF_PERIODS_TO_AVERAGE = 4;
   // Ddelta is the change in temperature in C per min
   float Ddelta_C_per_min = 0.0;
-  // This is period of time we will use to compute the Ddela_C_per_min.
-  // Note this does not have to be related to the DUTY_CYCLE_ADJUSTMENT_PERIOD_MS
-
-  const long FAKE_NUMBER_OF_DUTY_CYCLES_TO_RUN = 100000;
 
   int num_duty_cycles = 0;
 
+  // we will perform our duty cycle computation of 30 seconds...
   const int DUTY_CYCLE_COMPUTATION_TIME_MS = 30*1000;
 
   // These need more study
-  float MAXIMUM_HEATER_VOLTAGE = 12.0;
   float MAXIMUM_STACK_VOLTAGE = 8.0;
   float MAXIMUM_STACK_AMPS = 12.0;
   // These values are useful for testing by hand
@@ -192,6 +191,10 @@ public:
   MachineState ms;
   // This is used to make decisions that happen at transition time.
   MachineState previous_ms;
+  // This should be an enum, but I am having a lot of problems with it, I am going to
+  // try using an int...
+  Stage2Heater s2heaterToControl;
+
   MachineScript* script;
 
   IdleOrOperateSubState idleOrOperate = Operate;
@@ -213,18 +216,16 @@ public:
   MachineHAL* hal;
   MachineStatusReport *report;
 
-
   void outputReport(MachineStatusReport *msr);
   void createJSONReport(MachineStatusReport *msr, char *buffer);
 
   // Stage2 specific stuff; this should be handled
   // as a subclass, not a decorator, but I don't have time for that,
   // and it puts the main code at risk, so adding it in here is
-  // reasonable - rlrl
+  // reasonable - rlr
   Stage2StatusReport *s2sr;
   // This is used by the Serial listener to control which
   // state machine/heater/thermocouple we are controlling
-  Stage2Heater s2heaterToControl = Int1;
 
   float STAGE2_DEFAULT_TEMP_INT1;
   float STAGE2_DEFAULT_TEMP_EXT1;

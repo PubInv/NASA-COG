@@ -31,6 +31,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 namespace OxCore {
 
+
 void Scheduler::setupIdleTask() {
     _idleTask._properties.priority = static_cast<TaskPriority>(TaskPriorityOS::Idle);
     _idleTask._properties.period = 1;
