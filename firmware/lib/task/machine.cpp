@@ -70,20 +70,23 @@ void MachineConfig::createJSONReport(MachineStatusReport* msr, char *buffer) {
   sprintf(buffer+strlen(buffer), "\"FanRPM\": %.2f\n",msr->fan_rpm);
 }
 
-bool MachineHAL::init_heaters()  {
-  _ac_heaters = new OnePinHeater*[NUM_HEATERS];
-  for(int i = 0; i < NUM_HEATERS; i++) {
-    _ac_heaters[i] = new OnePinHeater();
-    _ac_heaters[i]->init();
-  }
+bool MachineHAL::init() {
+  init_heaters();
+
 }
 
 
 MachineConfig::MachineConfig() {
-  script = new MachineScript();
-  report = new MachineStatusReport();
-  s2sr = new Stage2StatusReport();
+ script = new MachineScript();
+ report = new MachineStatusReport();
+
+}
+
+bool MachineConfig::init() {
   // How we make certain assertions to make sure we are well configured
+  Serial.println("BEGGINING ASSERTION CHECKS!!");
+  Serial.println("IF YOU DO NOT SEE THE WORDS 'ALL CLEAR' BELOW AN ASSERTION HAS FAILED");
+  delay(100);
   assert(RAMP_UP_TARGET_D_MIN >= 0.0);
   assert(RAMP_DN_TARGET_D_MIN <= 0.0);
 
@@ -94,13 +97,6 @@ MachineConfig::MachineConfig() {
   assert(FAN_SPEED_AT_OPERATING_TEMP < FULL_POWER_FOR_FAN);
   assert(TEMP_TO_BEGIN_FAN_SLOW_DOWN < OPERATING_TEMP);
   assert(OPERATING_TEMP < END_FAN_SLOW_DOWN);
+  Serial.println("ALL CLEAR!!");
 
 }
-
-
-// updateTheFanSpeed to a percentage of the maximum flow.
-// We may have the ability to specify flow absolutely in the future,
-// but this is genertic.
-//void MachineConfig::_reportFanSpeed() {
-//  this->report->fan_rpm = ((COG_HAL) hal)->_fans[0]._calcRPM(0);
-//}

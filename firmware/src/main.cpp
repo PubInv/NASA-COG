@@ -60,7 +60,7 @@ SerialReportTask serialReportTask;
 MachineConfig machineConfig;
 /***********************************/
 
-#define ETHERNET_BOARD_PRESENT 1
+#define ETHERNET_BOARD_PRESENT 0
 
 
 // This is to allow a code idiom compatible with the way
@@ -74,15 +74,20 @@ MachineConfig *getConfig() {
 void setup()
 {
   OxCore::serialBegin(115200UL);
-  Debug<const char *>("Starting Ox...\n");
+  delay(500);
 
+  Debug<const char *>("Starting Ox...\n");
+  delay(100);
   if (core.Boot() == false) {
       ErrorHandler::Log(ErrorLevel::Critical, ErrorCode::CoreFailedToBoot);
       // TODO: Output error message
       //return EXIT_FAILURE;
       return;
   }
+  Debug<const char *>("Core booted...\n");
+  delay(100);
 
+  machineConfig.init();
   //  Eventually we will migrate all hardware to the COG_HAL..
   machineConfig.hal = new COG_HAL();
   bool initSuccess  = machineConfig.hal->init();
@@ -92,7 +97,7 @@ void setup()
   }
 
   // Now we will set the machine state to "Off"
-  machineConfig.ms = Off;
+  getConfig()->ms = Off;
 
   /***** Configure and add your tasks here *****/
 
@@ -119,7 +124,6 @@ void setup()
     OxCore::Debug<const char *>("serialReport Task add failed\n");
     abort();
   }
-
   OxCore::TaskProperties cogProperties;
   cogProperties.name = "cog";
   cogProperties.id = 21;
@@ -132,7 +136,9 @@ void setup()
     abort();
   }
 
+  getConfig()->ms = Off;
   cogTask.heaterPIDTask = &heaterPIDTask;
+
 
   OxCore::TaskProperties serialProperties;
   serialProperties.name = "serial";
@@ -140,7 +146,7 @@ void setup()
   serialProperties.period = 250;
   serialProperties.priority = OxCore::TaskPriority::High;
   serialProperties.state_and_config = (void *) &machineConfig;
-  bool serialAdd = core.AddTask(&serialTask, &serialProperties);
+   bool serialAdd = core.AddTask(&serialTask, &serialProperties);
   if (!serialAdd) {
     OxCore::Debug<const char *>("SerialProperties add failed\n");
     abort();
@@ -170,6 +176,7 @@ void setup()
     retrieveScriptUDPProperties.priority = OxCore::TaskPriority::High;
     retrieveScriptUDPProperties.state_and_config = (void *) &machineConfig;
 
+    retrieveScriptUDPTask.DEBUG_UDP = 2;
     bool retrieveScriptUDP = core.AddTask(&retrieveScriptUDPTask, &retrieveScriptUDPProperties);
     if (!retrieveScriptUDP) {
       OxCore::Debug<const char *>("Retrieve Script UDP\n");
@@ -177,7 +184,7 @@ void setup()
     }
   }
 
-  heaterPIDTask.dutyCycleTask = &dutyCycleTask;
+  dutyCycleTask.whichHeater = (Stage2Heater) 0;
 
   OxCore::Debug<const char *>("Duty Cycle Setup\n");
   OxCore::TaskProperties dutyCycleProperties;
@@ -206,9 +213,17 @@ void setup()
     abort();
   }
 
-  heaterPIDTask.DEBUG_PID = 1;
+  heaterPIDTask.whichHeater = (Stage2Heater) 0;
 
-  OxCore::Debug<const char *>("Added tasks\n");
+  heaterPIDTask.dutyCycleTask = &dutyCycleTask;
+
+  cogTask.heaterPIDTask = &heaterPIDTask;
+  cogTask.tempRefreshTask = &tempRefreshTask;
+
+  heaterPIDTask.DEBUG_PID = 1;
+  cogTask.DEBUG_LEVEL = 2;
+
+   OxCore::Debug<const char *>("Added tasks\n");
 
   /*********************************************/
 }
@@ -222,6 +237,7 @@ void loop() {
       OxCore::ErrorHandler::Log(OxCore::ErrorLevel::Critical, OxCore::ErrorCode::CoreFailedToRun);
 #ifdef ARDUINO
       // make sure we print anything needed!
+      Serial.println("Critical error!");
       delay(100);
       // Loop endlessly to stop the program from running
       while (true) {
@@ -230,6 +246,9 @@ void loop() {
       }
 #endif
       return;
+  } else {
+    Serial.println("INTERNAL ERROR!");
+    delay(100);
   }
 }
 

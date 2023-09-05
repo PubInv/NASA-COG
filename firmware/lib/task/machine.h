@@ -69,6 +69,8 @@ public:
   int NUM_HEATERS;
   OnePinHeater **_ac_heaters;
   int DEBUG_HAL = 0;
+  Stage2Heater s2heaterToControl = Int1;
+  int *HEATER_PINS;
   bool init_heaters();
   virtual bool init() = 0;
 };
@@ -79,27 +81,27 @@ class MachineConfig {
 public:
   MachineConfig();
 
-  //  static const int NUM_STACKS = 1;
-
-
   // TEST CONFIGURATION PARAMETERS
   // ALL OF THESE COULD BE CONFIGURABLE, BUT FOR THIS TEST
   // THEY ARE "HARD_WIRED" HERE.
   // Edit these directly and re-upload to run a different test.
   // This test is designed to abort the processeor when done.
 
-  static constexpr float RAMP_UP_TARGET_D_MIN = 0.5; // degrees C per minute
-  static constexpr float RAMP_DN_TARGET_D_MIN = -0.5; // degrees C per minute
-  unsigned long BEGIN_DN_TIME_MS;
-  unsigned long BEGIN_UP_TIME_MS;
+  float RAMP_UP_TARGET_D_MIN = 0.5; // degrees C per minute
+  float RAMP_DN_TARGET_D_MIN = -0.5; // degrees C per minute
+  unsigned long BEGIN_DN_TIME_MS = 0;
+  unsigned long BEGIN_UP_TIME_MS = 0;
 
   // This is the overall target_temp, which changes over time.
 
-  static constexpr float YELLOW_TEMP = 760.0;
-  static constexpr float RED_TEMP = 780.0;
-  static constexpr float OPERATING_TEMP = 740.0;
-  static constexpr float STOP_TEMP = 27.0;
-  static constexpr float MAX_CROSS_STACK_TEMP = 40.0;
+  // These can be adjusted at run time.
+  float YELLOW_TEMP = 760.0;
+  float RED_TEMP = 780.0;
+  float OPERATING_TEMP = 740.0;
+  // Note! This is a difference (delta), not an absolute temperature
+  float OPERATING_TEMP_OVERTARGET_DELTA = 10.0;
+  float STOP_TEMP = 27.0;
+  float MAX_CROSS_STACK_TEMP = 40.0;
 
   static constexpr float TEMP_REFRESH_LIMIT = 40.0;
 
@@ -129,8 +131,10 @@ public:
   // FAN CONTROL
   static constexpr float FULL_POWER_FOR_FAN = 0.6;
   static constexpr float FAN_SPEED_AT_OPERATING_TEMP = 0.3;
-  static constexpr float TEMP_TO_BEGIN_FAN_SLOW_DOWN = 500;
-  static constexpr float END_FAN_SLOW_DOWN = OPERATING_TEMP + 25.0;
+  float TEMP_TO_BEGIN_FAN_SLOW_DOWN = 500;
+  // TODO --- change this as a delta to the operating temp, so it beccomes
+  // a simple constant
+  float END_FAN_SLOW_DOWN = 740.0 + 25.0;
 
   // These parameters are related to our control procedure.
   // This is similar to a PID loop, but I don't think any integration
@@ -198,9 +202,7 @@ public:
   MachineState ms;
   // This is used to make decisions that happen at transition time.
   MachineState previous_ms;
-  // This should be an enum, but I am having a lot of problems with it, I am going to
-  // try using an int...
-  Stage2Heater s2heaterToControl;
+  Stage2Heater s2heater;
 
   MachineScript* script;
 
@@ -223,6 +225,8 @@ public:
   MachineHAL* hal;
   MachineStatusReport *report;
 
+  bool init();
+
   void outputReport(MachineStatusReport *msr);
   void createJSONReport(MachineStatusReport *msr, char *buffer);
 
@@ -230,17 +234,12 @@ public:
   // as a subclass, not a decorator, but I don't have time for that,
   // and it puts the main code at risk, so adding it in here is
   // reasonable - rlr
-  Stage2StatusReport *s2sr;
-  // This is used by the Serial listener to control which
-  // state machine/heater/thermocouple we are controlling
 
-  float STAGE2_OPERATING_TEMP[3];
-
-  unsigned long STAGE2_BEGIN_UP_TIME[3];
-  unsigned long STAGE2_BEGIN_DN_TIME[3];
-
-  void outputStage2Report(Stage2StatusReport *msr);
-  void createStage2JSONReport(Stage2StatusReport *msr, char *buffer);
+  void outputStage2Report(Stage2Heater s2h,MachineStatusReport *msr,
+                          float target_temp,
+                          float measured_temp,
+                          float duty_cycle);
+  void createStage2JSONReport(Stage2Heater s2h,MachineStatusReport *msr, char *buffer);
 
 };
 
