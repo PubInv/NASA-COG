@@ -55,6 +55,20 @@ using namespace Menu;
 //#define U8_SCK  52
 //#define SDSS   53 //sd card ss select
 //#define CD     49  //sd card card detect
+/*
+A0	FAN1_FG			Input		Blower 1 Tachometer	
+D4	TEMP1			BIDirect	Dallas One-Wire connection to Thermocouple Breakouts	Daisy chain connection to temprature probes. Address of ???
+D9	nFAN1_PWM		Output		Blower PWM	This output will be inverted
+D18	TX1	Output		Digital 	Power Supply TF800 Pin 23	This is Serial1 TX for (power supply)[https://assets.alliedelec.com/v1560852133/Datasheets/1d230174086e96b6e4801d1c963649f3.pdf]
+D19	RX1	Input		Digital 	Power Supply TF800 Pin 24	This is Serial1 RX for (power supply) [https://assets.alliedelec.com/v1560852133/Datasheets/1d230174086e96b6e4801d1c963649f3.pdf]
+D22	BLOWER_ENABLE	Output		Blower Enable	
+D32	GPAD_nCS		Output		External SPI inverted select (for the GPAD)	
+D44	LPBK0			Output		Varying loopback signal	
+D45	LPBK1			Input		Read of digital loopback signal	
+D51	HEAT1			Output		Positive SSR signal
+D50 Heat2			Output		Positive SSR signal for heaterPIDTask
+D49 HEAT3			Output		Positive SSR signal for heater PID 
+*/
 #define U8_DC 16  //LCD A0  
 #define U8_CS 17 //D0LCD_CS
 #define U8_RST 23 //LCD_RESET_PIN  
