@@ -28,6 +28,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // #include "mostplus_flow.h"
 #include <machine_core_defs.h>
 #include <machine.h>
+#include <cog_hal.h>
 
 #include <abstract_temperature.h>
 
@@ -47,6 +48,9 @@ namespace OxApp
   class StateMachineManager : public OxCore::Task {
   public:
       int DEBUG_LEVEL = 0;
+
+    void printOffWarnings(MachineState ms);
+
       MachineState _executeBasedOnState(MachineState ms);
       virtual MachineState _updatePowerComponentsOperation(IdleOrOperateSubState i_or_o) = 0;
       virtual MachineState _updatePowerComponentsOff() = 0 ;
@@ -57,11 +61,17 @@ namespace OxApp
       virtual MachineState _updatePowerComponentsEmergencyShutdown() = 0;
       virtual MachineState _updatePowerComponentsOffUserAck() = 0;
 
-    // These code in theory be made static
+    // These functions in theory be made static
       float  computeFanSpeed(float t);
       float  computeAmperage(float t);
       float  computeRampUpTargetTemp(float t,float recent_t,unsigned long begin_up_time_ms);
       float  computeRampDnTargetTemp(float t,float recent_t,unsigned long begin_dn_time_ms);
+
+
+    // Every subclass manages a temperature, so we can define this here
+    float RECENT_TEMP = 30.0;
+    // subclasses must override
+    virtual float getTemperatureReading() = 0;
 
       bool _run() override;
   };
@@ -73,18 +83,18 @@ namespace OxApp
       TempRefreshTask* tempRefreshTask;
       HeaterPIDTask* heaterPIDTask;
       int DEBUG_LEVEL = 0;
+
+
       // TODO: This should probably be done dynamically, not here...
 
       // There are really several senosrs, but they are indexed!
-      const static int NUM_TEMPERATURE_SENSORS = 3;
-      const static int NUM_TEMPERATURE_INDICES = 2;
+      const static int NUM_TEMP_SENSORS = 3;
+      const static int NUM_TEMP_INDICES = 2;
       const static int NUM_FANS = 1;
-      const static int NUM_STACKS = 1;
 
-      // WARNING! This is a fragile; I believe a rate based algorithm is better.
-      unsigned long begin_down_time = 0;
+     float getTemperatureReading();
+     COG_HAL* getHAL();
 
-      AbstractPS* _stacks[NUM_STACKS];
 
       void _updatePowerComponentsVoltage(float voltage);
       void _configTemperatureSensors();

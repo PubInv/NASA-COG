@@ -22,6 +22,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #endif
 
 #include <core.h>
+#include <cog_hal.h>
 
 #include <retrieve_script_UDP_task.h>
 #include <cog_task.h>
@@ -62,6 +63,12 @@ MachineConfig machineConfig;
 #define ETHERNET_BOARD_PRESENT 1
 
 
+// This is to allow a code idiom compatible with the way
+// the machine config is found  inside the Tasks
+MachineConfig *getConfig() {
+  return &machineConfig;
+}
+
 // TODO: we need to have setups for individual pieces
 // of the Hardware Abstraction Layer
 void setup()
@@ -76,30 +83,16 @@ void setup()
       return;
   }
 
-  //  Eventually we will migrate all hardware to the MachineHAL..
-  machineConfig.hal = new MachineHAL();
+  //  Eventually we will migrate all hardware to the COG_HAL..
+  machineConfig.hal = new COG_HAL();
   bool initSuccess  = machineConfig.hal->init();
   if (!initSuccess) {
     Serial.println("Could not init Hardware Abastraction Layer Properly!");
     abort();
   }
 
-
-  //TODO: This needs to be placed inthe task init feature!
-  //#if BUILD_ENV_NAME == due_ribbonfish
-#ifdef RIBBONFISH
-  // TODO: I am not sure where to put this; and it is
-  // probably only valid on Due...nonetheless it is
-  // absolutely needed byt the TF800A12K.cpp/SL_PS class...
-  // it really should be there...
-      pinMode(MAX31850_DATA_PIN, INPUT);
-      pinMode(RF_FAN, OUTPUT);
-      pinMode(RF_HEATER, OUTPUT);
-      pinMode(RF_STACK, OUTPUT);
-#endif
-
-      // Now we will set the machine state to "Off"
-      machineConfig.ms = Off;
+  // Now we will set the machine state to "Off"
+  machineConfig.ms = Off;
 
   /***** Configure and add your tasks here *****/
 
@@ -198,6 +191,7 @@ void setup()
     OxCore::Debug<const char *>("dutyCycleAdd Failed\n");
     abort();
   }
+  dutyCycleTask.one_pin_heater = getConfig()->hal->_ac_heaters[0];
 
   OxCore::TaskProperties HeaterPIDProperties;
   HeaterPIDProperties.name = "HeaterPID";

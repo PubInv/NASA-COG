@@ -32,57 +32,61 @@ namespace OxApp
 
         getConfig()->fanDutyCycle = 0.0;
 
-        _stacks[0] = new SL_PS("FIRST_STACK",0);
-
-        _stacks[0]->init();
-
         return true;
     }
 
+  COG_HAL* CogTask::getHAL() {
+    (COG_HAL *) getConfig()->hal;
+  }
+
+
+  float CogTask::getTemperatureReading() {
+    return getConfig()->report->post_heater_C;
+  }
     bool CogTask::_run()
     {
-      getConfig()->_reportFanSpeed();
+      // Report fan speed
+      getConfig()->report->fan_rpm =
+        getHAL()->_fans[0]._calcRPM(0);
       // To make sure startup has now wild surges,
       // if we have a valid temperature we will make sure the
       // TempRefreshTask has been run...
-      float postHeaterTemp = getConfig()->report->post_heater_C;
-      if ((abs(getConfig()->TARGET_TEMP - postHeaterTemp) > 40.0) ||
+      float t = getTemperatureReading();
+
+      // This is only run once, to handle a reset without waiting
+      // 5 minutes.
+      if ((abs(getConfig()->TARGET_TEMP - t) > 40.0) ||
           ((tempRefreshTask->time_of_last_refresh == 0) &&
-           (postHeaterTemp > 0.0))) {
+           (t > 0.0))) {
         tempRefreshTask->run();
         heaterPIDTask->HeaterSetPoint_C = getConfig()->TARGET_TEMP;
       }
+      MachineState ms = getConfig()->ms;
+      printOffWarnings(ms);
 
-      StateMachineManager::_run();
+      MachineState new_state = _executeBasedOnState(ms);
+      // if the state really changes, we want to log that and take some action!
+      if (new_state != ms) {
+        getConfig()->ms = new_state;
+        OxCore::Debug<const char *>("CHANGING STATE TO: ");
+        OxCore::DebugLn<const char *>(MachineConfig::MachineStateNames[getConfig()->ms]);
+        OxCore::DebugLn<const char *>("");
+      }
     }
 
+  void StateMachineManager::printOffWarnings(MachineState ms) {
+      // If we are in the off state there is nothing to do!
+      if (ms == OffUserAck) {
+          OxCore::DebugLn<const char *>("AN ERROR OCCURED. WILL NOT ENTER OFF STATE ");
+          OxCore::DebugLn<const char *>("UNTIL ACKNOWLEDGED. ENTER A SINGLE 'a' TO ACKNOWLEDGE:");
+      }
+      if (ms == Off) {
+          OxCore::DebugLn<const char *>("Currrently Off. Enter a single 'w' to warmup: ");
+      }
+  }
 
     bool StateMachineManager::_run()
     {
-
-      MachineConfig *cogConfig = getConfig();
-
-
-      // If we are in the off state there is nothing to do!
-      if (cogConfig->ms == OffUserAck) {
-          OxCore::DebugLn<const char *>("AN ERROR OCCURED. WILL NOT ENTER OFF STATE ");
-          OxCore::DebugLn<const char *>("UNTIL ACKNOWLEDGED. ENTER A SINGLE 'a' TO ACKNOWLEDGE:");
-          return true;
-      }
-      if (cogConfig->ms == Off) {
-          OxCore::DebugLn<const char *>("Currrently Off. Enter a single 'w' to warmup: ");
-      }
-
-
-      MachineState new_state = _executeBasedOnState(cogConfig->ms);
-      // if the state really changes, we want to log that and take some action!
-      if (new_state != cogConfig->ms) {
-        cogConfig->ms = new_state;
-        OxCore::Debug<const char *>("CHANGING STATE TO: ");
-        OxCore::DebugLn<const char *>(MachineConfig::MachineStateNames[cogConfig->ms]);
-        OxCore::DebugLn<const char *>("");
-      }
-
       return true;
     }
 
@@ -137,10 +141,10 @@ namespace OxApp
   MachineState CogTask::_updatePowerComponentsOff() {
     MachineState new_ms = Off;
 
-    getConfig()->fanDutyCycle = 0.0;
-
-    getConfig()->_updateFanPWM(getConfig()->fanDutyCycle);
-
+    float fs = 0.0;
+    getConfig()->fanDutyCycle = fs;
+    getHAL()->_updateFanPWM(fs);
+    getConfig()->report->fan_pwm = fs;
     _updateStackVoltage(MachineConfig::MIN_OPERATING_STACK_VOLTAGE);
 
     return new_ms;
@@ -150,11 +154,11 @@ namespace OxApp
     float f;
     float p = MachineConfig::FULL_POWER_FOR_FAN;
     float s = MachineConfig::FAN_SPEED_AT_OPERATING_TEMP;
-    float d = MachineConfig::TEMPERATURE_TO_BEGIN_FAN_SLOW_DOWN;
+    float d = MachineConfig::TEMP_TO_BEGIN_FAN_SLOW_DOWN;
     float e = MachineConfig::END_FAN_SLOW_DOWN;
-    float h = MachineConfig::OPERATING_TEMPERATURE;
-    float r = MachineConfig::RED_TEMPERATURE;
-    float y = MachineConfig::YELLOW_TEMPERATURE;
+    float h = MachineConfig::OPERATING_TEMP;
+    float r = MachineConfig::RED_TEMP;
+    float y = MachineConfig::YELLOW_TEMP;
     if (t < d) {
       f = p;
     } else if (t >= d && t < y) {
@@ -166,10 +170,10 @@ namespace OxApp
   }
   float StateMachineManager::computeAmperage(float t) {
     return MachineConfig::MAX_AMPERAGE *
-      ((t < MachineConfig::YELLOW_TEMPERATURE)
+      ((t < MachineConfig::YELLOW_TEMP)
        ?  1.0
-       : MachineConfig::MAX_AMPERAGE * max(0,MachineConfig::RED_TEMPERATURE - t) /
-       (MachineConfig::RED_TEMPERATURE - MachineConfig::YELLOW_TEMPERATURE));
+       : MachineConfig::MAX_AMPERAGE * max(0,MachineConfig::RED_TEMP - t) /
+       (MachineConfig::RED_TEMP - MachineConfig::YELLOW_TEMP));
   }
 
 
@@ -177,10 +181,7 @@ namespace OxApp
     unsigned long ms = millis();
     const unsigned long MINUTES_RAMPING_UP = (ms - begin_up_time_ms) / (60 * 1000);
     float tt = recent_t + MINUTES_RAMPING_UP * MachineConfig::RAMP_UP_TARGET_D_MIN;
-    tt = min(tt,MachineConfig::OPERATING_TEMPERATURE);
-    if (tt > MachineConfig::OPERATING_TEMPERATURE) {
-      Serial.println("interanl error: target temperature above operating temperature");
-    }
+    tt = min(tt,MachineConfig::OPERATING_TEMP);
     return tt;
   }
   float StateMachineManager::computeRampDnTargetTemp(float t,float recent_t,unsigned long begin_dn_time_ms) {
@@ -189,7 +190,7 @@ namespace OxApp
 
     float tt =
      recent_t + MINUTES_RAMPING_DN * MachineConfig::RAMP_DN_TARGET_D_MIN;
-    tt = max(tt,MachineConfig::STOP_TEMPERATURE);
+    tt = max(tt,MachineConfig::STOP_TEMP);
     return t;
   }
 
@@ -199,7 +200,13 @@ namespace OxApp
       OxCore::Debug<const char *>("Warmup Mode!\n");
     }
 
-    float t = getConfig()->report->post_heater_C;
+    float t = getTemperatureReading();
+
+    // if we've reached operating temperature, we switch
+    // states
+    if (t >= getConfig()->OPERATING_TEMP) {
+      return NormalOperation;
+    }
 
     if (t > MachineConfig::OPERATING_TEMPERATURE) {
       new_ms = NormalOperation;
@@ -209,7 +216,7 @@ namespace OxApp
     float fs = computeFanSpeed(t);
     float a = computeAmperage(t);
     float tt = computeRampUpTargetTemp(t,
-                                       getConfig()->RECENT_TEMPERATURE,
+                                       getConfig()->GLOBAL_RECENT_TEMP,
                                        getConfig()->BEGIN_UP_TIME_MS);
 
     if (DEBUG_LEVEL > 0) {
@@ -221,22 +228,23 @@ namespace OxApp
       OxCore::DebugLn<float>(tt);
     }
 
-    getConfig()->_updateFanPWM(fs);
+    getHAL()->_updateFanPWM(fs);
+    getConfig()->report->fan_pwm = fs;
     _updateStackAmperage(a);
+
     // This will be used by the HeaterPID task.
     float cross_stack_temp =  abs(getConfig()->report->post_getter_C -  getConfig()->report->post_stack_C);
 
 
 
     if (cross_stack_temp > MachineConfig::MAX_CROSS_STACK_TEMP) {
-      if (DEBUG_LEVEL > 0) {
-      OxCore::Debug<const char *>("PAUSING DUE TO CROSS STACK TEMP\n");
-      }
+      OxCore::Debug<const char *>("PAUSING INCREASED DUE TO CROSS STACK TEMP: ");
+      OxCore::DebugLn<float>(cross_stack_temp);
       // here now we will not change the TARGET_TEMP.
       // in order to be prepared when this condition is
       // releived, we need to recent the time and temp
       // so that we can smoothly been operating.
-      getConfig()->RECENT_TEMPERATURE = t;
+      getConfig()->GLOBAL_RECENT_TEMP = t;
       getConfig()->BEGIN_UP_TIME_MS = millis();
     } else {
       getConfig()->TARGET_TEMP = tt;
@@ -257,24 +265,22 @@ namespace OxApp
     if (DEBUG_LEVEL > 0) {
       OxCore::Debug<const char *>("Cooldown Mode!\n");
     }
+
+    float t = getTemperatureReading();
     if (getConfig()->previous_ms != Cooldown) {
-      // can this be be made RECENT_TEMPERATURE?
-      getConfig()->COOL_DOWN_BEGIN_TEMPERATURE = getConfig()->report->post_heater_C;
+      getConfig()->GLOBAL_RECENT_TEMP = t;
     }
 
-    if (getConfig()->report->post_heater_C <= getConfig()->COOLDOWN_TARGET_C
-        &&
-        getConfig()->report->post_stack_C <= getConfig()->COOLDOWN_TARGET_C) {
+    if (t <= getConfig()->COOLDOWN_TARGET_C) {
       new_ms = Off;
       return new_ms;
     }
 
-    float t = getConfig()->report->post_heater_C;
 
     float fs = computeFanSpeed(t);
     float a = computeAmperage(t);
     float tt = computeRampDnTargetTemp(t,
-                                       getConfig()->COOL_DOWN_BEGIN_TEMPERATURE,
+                                       getConfig()->COOL_DOWN_BEGIN_TEMP,
                                        getConfig()->BEGIN_DN_TIME_MS);
 
     if (DEBUG_LEVEL > 0) {
@@ -286,9 +292,14 @@ namespace OxApp
       OxCore::DebugLn<float>(tt);
     }
 
-    getConfig()->_updateFanPWM(fs);
+    getHAL()->_updateFanPWM(fs);
+    getConfig()->report->fan_pwm = fs;
     _updateStackAmperage(a);
 
+    // Note that Tom Taylor said not to do this check
+    // when cooling down, because it might let the system
+    // get stuck cooling. I'm leaving it commented here
+    // to be symmetric with warmp - rlr
     // float cross_stack_temp =  abs(getConfig()->report->post_getter_C -  getConfig()->report->post_stack_C);
 
     // if (cross_stack_temp > MachineConfig::MAX_CROSS_STACK_TEMP) {
@@ -300,9 +311,10 @@ namespace OxApp
     //   // in order to be prepared when this condition is
     //   // releived, we need to recent the time and temp
     //   // so that we can smoothly been operating.
-    //   getConfig()->COOL_DOWN_BEGIN_TEMPERATURE = t;
+    //   getConfig()->COOL_DOWN_BEGIN_TEMP = t;
     //   getConfig()->BEGIN_DN_TIME_MS = millis();
-    // }    else
+    // } else
+
       {
       getConfig()->TARGET_TEMP = tt;
       heaterPIDTask->HeaterSetPoint_C = getConfig()->TARGET_TEMP;
@@ -327,7 +339,8 @@ namespace OxApp
     MachineState new_ms = OffUserAck;
     _updateStackVoltage(MachineConfig::MIN_OPERATING_STACK_VOLTAGE);
     // In an emergency shutdown, we do NOT run the fan!
-    getConfig()->_updateFanPWM(0.0);
+    getHAL()->_updateFanPWM(0.0);
+    getConfig()->report->fan_pwm = 0.0;
     return new_ms;
   }
   MachineState CogTask::_updatePowerComponentsOffUserAck() {
@@ -335,27 +348,26 @@ namespace OxApp
     _updateStackVoltage(MachineConfig::MIN_OPERATING_STACK_VOLTAGE);
     return new_ms;
   }
-  // In theory, this could take an array rather than
-  // a fixed voltage; that will have to be added later
+  // TODO: This would go better on the HAL
    void CogTask::_updateStackVoltage(float voltage) {
-        for (int i = 0; i < NUM_STACKS; i++) {
-          _stacks[i]->updateVoltage(voltage,getConfig());
-        }
-    }
+     for (int i = 0; i < getHAL()->NUM_STACKS; i++) {
+       getHAL()->_stacks[i]->updateVoltage(voltage,getConfig());
+     }
+   }
 
    void CogTask::_updateStackAmperage(float amperage) {
-        for (int i = 0; i < NUM_STACKS; i++) {
-          _stacks[i]->updateAmperage(amperage,getConfig());
+        for (int i = 0; i < getHAL()->NUM_STACKS; i++) {
+          getHAL()->_stacks[i]->updateAmperage(amperage,getConfig());
         }
     }
 
    MachineState CogTask::_updatePowerComponentsOperation(IdleOrOperateSubState i_or_o) {
      MachineState new_ms = NormalOperation;
 
-    float t = getConfig()->report->post_heater_C;
+    float t = getTemperatureReading();;
     float fs = computeFanSpeed(t);
     float a = computeAmperage(t);
-    float tt = MachineConfig::OPERATING_TEMPERATURE;
+    float tt = MachineConfig::OPERATING_TEMP;
 
     if (DEBUG_LEVEL > 0) {
       OxCore::Debug<const char *>("fan speed, amperage, tt\n");
@@ -366,7 +378,9 @@ namespace OxApp
       OxCore::DebugLn<float>(tt);
     }
 
-    getConfig()->_updateFanPWM(fs);
+    getHAL()->_updateFanPWM(fs);
+    getConfig()->report->fan_pwm = fs;
+
     _updateStackAmperage(a);
     getConfig()->TARGET_TEMP = tt;
     heaterPIDTask->HeaterSetPoint_C = getConfig()->TARGET_TEMP;
