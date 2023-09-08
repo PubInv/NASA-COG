@@ -292,7 +292,7 @@ namespace OxApp
 
     _updateStackAmperage(a);
     getConfig()->TARGET_TEMP = tt;
-    heaterPIDTask->HeaterSetPoint_C = getConfig()->TARGET_TEMP;
+    heaterPIDTask->HeaterSetPoint_C = tt;
 
     _updateStackVoltage(getConfig()->STACK_VOLTAGE);
      return new_ms;
