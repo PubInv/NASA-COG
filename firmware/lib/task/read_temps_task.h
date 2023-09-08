@@ -24,6 +24,10 @@
 #include <core_defines.h>
 #include <core.h>
 
+#ifdef USE_MAX31855_THERMOCOUPLES
+#include <Adafruit_MAX31855.h>
+#endif
+
 #ifdef USE_MAX31850_THERMOCOUPLES
 #include <MAX31850.h>
 #else

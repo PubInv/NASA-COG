@@ -210,7 +210,7 @@ public:
 
   // This is a range from 0.0 to 1.0!
   // However, when used in the Arduino it has to be mapped
-  // onto a an integer (usuall 0-255) but this should be
+  // onto a an integer (usually 0-255) but this should be
   // the last step.
   float fanDutyCycle = 0.0;
 
