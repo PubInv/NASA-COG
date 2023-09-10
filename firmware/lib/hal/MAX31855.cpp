@@ -1,5 +1,5 @@
 // Copyright (C) 2021
-// Robert Read, Ben Coombs.
+// Lawrence Kincheloe, Robert Read, Ben Coombs.
 
 // This program includes free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -15,9 +15,9 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 #ifdef ARDUINO
-#ifdef ARDUINO
 #include <Arduino.h>
 #endif 
+
 #include <SPI.h>
 
 #include <Adafruit_MAX31855.h>
@@ -31,30 +31,31 @@ namespace Temperature {
 
   // TODO: Turn this into a Loop to support any number of thermocouples.
   // Print out an ordering so we can match ID against index
-  // arrays to hold device addresses
-  DeviceAddress postHeaterThermometer;
-  DeviceAddress postGetterThermometer;
-  DeviceAddress postStackThermometer;
+  // arrays to hold device Chip Select
+  int8_t  postHeaterThermometer = 0;
+  int8_t  postGetterThermometer = 0;
+  int8_t  postStackThermometer  = 0;
 
-  MAX31855Temperature::MAX31855Temperature() {
+  MAX31855Temperature::MAX31855Temperature(SensorConfig &config) {
+	thermocouple = Adafruit_MAX31855(int8_t _sclk, int8_t _cs, int8_t _miso);
     thermocouple.begin();
     // Pass our oneWire reference to Dallas Temperature.
 
-    sensors.setOneWire(&oneWire);
+   // sensors.setOneWire(&oneWire);
 
       // Start up the library
-  sensors.begin();
+  //sensors.begin();
 
   // locate devices on the bus
-  Serial.print("Locating devices...");
-  Serial.print("Found ");
-  Serial.print(sensors.getDeviceCount(), DEC);
-  Serial.println(" devices.");
+  //Serial.print("Locating devices...");
+  //Serial.print("Found ");
+ // Serial.print(sensors.getDeviceCount(), DEC);
+ // Serial.println(" devices.");
 
   // report parasite power requirements
-  Serial.print("Parasite power is: ");
-  if (sensors.isParasitePowerMode()) Serial.println("ON");
-  else Serial.println("OFF");
+  //Serial.print("Parasite power is: ");
+  //if (sensors.isParasitePowerMode()) Serial.println("ON");
+  //else Serial.println("OFF");
 
   // assign address manually.  the addresses below will beed to be changed
   // to valid device addresses on your bus.  device address can be retrieved
@@ -69,9 +70,9 @@ namespace Temperature {
   // the devices on your bus (and assuming they don't change).
   //
   // method 1: by index
-  if (!sensors.getAddress(postHeaterThermometer, 0)) Serial.println("Unable to find address for Device 0");
-  if (!sensors.getAddress(postGetterThermometer, 1)) Serial.println("Unable to find address for Device 1");
-    if (!sensors.getAddress(postStackThermometer, 2)) Serial.println("Unable to find address for Device 2");
+ // if (!sensors.getAddress(postHeaterThermometer, 0)) Serial.println("Unable to find address for Device 0");
+ // if (!sensors.getAddress(postGetterThermometer, 1)) Serial.println("Unable to find address for Device 1");
+  //  if (!sensors.getAddress(postStackThermometer, 2)) Serial.println("Unable to find address for Device 2");
 
   // method 2: search()
   // search() looks for the next device. Returns 1 if a new address has been
@@ -119,8 +120,9 @@ namespace Temperature {
   }
 
   MAX31855Temperature::MAX31855Temperature(SensorConfig &config) {
+	  
 	// Initialize the Thermocouple
-	Adafruit_MAX31855 thermocouple(MAXCLK, MAXCS, MAXDO);
+	Adafruit_MAX31855 thermocouple(MAXCLK, config->pin, MAXDO);
     
   }
 

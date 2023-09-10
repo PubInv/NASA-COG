@@ -1,5 +1,5 @@
 // Copyright (C) 2021
-// Robert Read, Ben Coombs.
+// Lawrence Kincheloe, Robert Read, Ben Coombs.
 
 // This program includes free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -14,23 +14,24 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-#ifndef MAX31850_TEMPERATURE
-#define MAX31850_TEMPERATURE
+#ifndef MAX31855_TEMPERATURE
+#define MAX31855_TEMPERATURE
 
 // Put guard for Arduino here
 
 #ifdef ARDUINO
-
-#ifdef ARDUINO
 #include <Arduino.h>
+
 #else
 #include <cstdint>
 #endif
 
 #include "abstract_temperature.h"
 
-#include <OneWire.h>
-#include <DallasTemperature.h>
+
+#include <Adafruit_MAX31855.h>
+//#include <OneWire.h>
+//#include <DallasTemperature.h>
 
 #include <machine.h>
 // Note: In a real solution, we need to know the addresses for the temperature sensors
@@ -40,29 +41,28 @@
 // This is a quick-and-dirty approach for the "RibbonFish" POC.
 // #define POST_STACK_0_IDX 0
 //#define POST_HEATER_0_IDX 1
-// #define MAX31850_DATA_PIN 2
+// #define MAX31855_DATA_PIN 2
 
 namespace Temperature {
-  class MAX31850Temperature : public AbstractTemperature {
-  public:
+  class MAX31855Temperature : public AbstractTemperature {
+  private:
     SensorConfig _config;
     float _temperature;
-    OneWire oneWire;
-    DallasTemperature sensors;
-    // Pass our oneWire reference to Dallas Temperature.
-  public:
-    MAX31850Temperature();
-    MAX31850Temperature(SensorConfig &config);
+	// Initialize the Thermocouple pinout  _sclk,  _cs,  _miso
+	Adafruit_MAX31855* thermocouple;//(MAXCLK, MAXCS, MAXDO);
 
-// function to print a device address
+  public:
+    MAX31855Temperature(OxApp::Model& m,SensorConfig &config);
+    MAX31855Temperature(SensorConfig &config);
+
+	// function to print a device address
     void printAddress(DeviceAddress deviceAddress);
     void Config(SensorConfig &config);
     float ReadTemperature();
     float GetTemperature();
     float GetTemperature(int idx);
     SensorConfig GetConfig() const;
-
-    //    ~MAX31850Temperature() {};
+    ~MAX31855Temperature() {};
   };
 
 }
