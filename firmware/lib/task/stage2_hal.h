@@ -27,7 +27,9 @@ public:
   bool init() override;
   Stage2Heater s2heaterToControl = Int1;
   const int NUM_HEATERS = 3;
-  const int HEATER_PINS[3] = {51,50,49};
+  const int HEATER_PINS[3] = {51,50,49}; // Ext1, Ext2, Int1
+  const int NUM_THERMOCOUPLES = 3;
+  const int THERMOCOUPLE_PINS[3] = {??,??,??};  // Ext1, Ext2, Int1
   float getTemperatureReading(Stage2Heater s2h,MachineConfig *mc);
 };
 

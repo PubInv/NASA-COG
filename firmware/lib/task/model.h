@@ -14,7 +14,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
-// This is an attempt to build a model of the machien for
+// This is an attempt to build a model of the machine for
 // the purpose of mocking it without hardware. This
 // initial implementation will be trivial: it will consists
 // of an input at room temperature, and an output after the

@@ -44,6 +44,86 @@ using namespace OxCore;
 // #include <serial_task.h>
 #include <stage2_serial_task.h>
 #include <temp_refresh_task.h>
+#include <menuIO/U8x8Out.h>
+#include <TimerOne.h>
+#include <ClickEncoder.h>
+#include <menuIO/clickEncoderIn.h>
+using namespace Menu;
+
+#define BEEPER_PIN 37 // buzzer pin
+//#define U8_MISO 50
+//#define U8_MOSI 51
+//#define U8_SCK  52
+//#define SDSS   53 //sd card ss select
+//#define CD     49  //sd card card detect
+/*
+A0	FAN1_FG			Input		Blower 1 Tachometer	
+D4	TEMP1			BIDirect	Dallas One-Wire connection to Thermocouple Breakouts	Daisy chain connection to temprature probes. Address of ???
+D9	nFAN1_PWM		Output		Blower PWM	This output will be inverted
+D18	TX1	Output		Digital 	Power Supply TF800 Pin 23	This is Serial1 TX for (power supply)[https://assets.alliedelec.com/v1560852133/Datasheets/1d230174086e96b6e4801d1c963649f3.pdf]
+D19	RX1	Input		Digital 	Power Supply TF800 Pin 24	This is Serial1 RX for (power supply) [https://assets.alliedelec.com/v1560852133/Datasheets/1d230174086e96b6e4801d1c963649f3.pdf]
+D22	BLOWER_ENABLE	Output		Blower Enable	
+D32	GPAD_nCS		Output		External SPI inverted select (for the GPAD)	
+D44	LPBK0			Output		Varying loopback signal	
+D45	LPBK1			Input		Read of digital loopback signal	
+D51	HEAT1			Output		Positive SSR signal
+D50 Heat2			Output		Positive SSR signal for heaterPIDTask
+D49 HEAT3			Output		Positive SSR signal for heater PID 
+*/
+#define U8_DC 31  //LCD A0  
+#define U8_CS 48 //D0LCD_CS
+#define U8_RST 38 //LCD_RESET_PIN  
+#define U8_Width 128
+#define U8_Height 64
+
+//#rst and kill are both pull down can be used to reset mcu. 
+//GPIO Defines
+#define encA               40
+#define encB               24
+#define encButton          39 
+#define LED_BUILTIN_RED    37 //active high
+#define LED_BUILTIN_GREEN  23 //active high
+#define LED_BUILTIN_BLUE   53 //active high
+
+U8X8_PCD8544_84X48_4W_HW_SPI u8x8(U8_CS, U8_DC , U8_RST);
+
+const char* constMEM hexDigit MEMMODE="0123456789ABCDEF";
+const char* constMEM hexNr[] MEMMODE={"0","x",hexDigit,hexDigit};
+char buf1[]="0x11";//<-- menu will edit this text
+
+ClickEncoder clickEncoder(encA,encB,encButton,2);
+ClickEncoderStream encStream(clickEncoder,1);
+MENU_INPUTS(in,&encStream);
+void timerIsr() {clickEncoder.service();}
+
+//define colors
+#define BLACK {0,0,0}
+#define BLUE {0,0,255}
+#define GRAY {128,128,128}
+#define WHITE {255,255,255}
+#define YELLOW {255,255,0}
+#define RED {255,0,0}
+
+const colorDef<rgb> my_colors[6] {
+  {{BLACK,BLACK},{BLACK,BLUE,BLUE}},//bgColor
+  {{GRAY,GRAY},{WHITE,WHITE,WHITE}},//fgColor
+  {{WHITE,BLACK},{YELLOW,YELLOW,RED}},//valColor
+  {{WHITE,BLACK},{WHITE,YELLOW,YELLOW}},//unitColor
+  {{WHITE,GRAY},{BLACK,BLUE,WHITE}},//cursorColor
+  {{WHITE,YELLOW},{BLUE,RED,RED}},//titleColor
+};
+
+#define offsetX 0
+#define offsetY 0
+
+#define MAX_DEPTH 2
+
+MENU_OUTPUTS(out,MAX_DEPTH
+  ,SERIAL_OUT(Serial)
+  ,U8X8_OUT(u8x8,{0,0,10,6})
+);
+
+NAVROOT(nav,mainMenu,MAX_DEPTH,serial,out);
 
 using namespace OxCore;
 static Core core;
@@ -89,6 +169,16 @@ void setup() {
   }
   Stage2HAL *s2hal = new Stage2HAL();
   bool initSuccess  = s2hal->init();
+  encoderIn<encA,encB> encoder;//simple quad encoder driver
+  
+  getConfig()->hal = new Stage2HAL();
+
+  getConfig()->ms = Off;
+  getConfig()->s2sr->ms[Int1] = Off;
+  getConfig()->s2sr->ms[Ext1] = Off;
+  getConfig()->s2sr->ms[Ext2] = Off;
+
+  bool initSuccess  = getConfig()->hal->init();
   Serial.println("about to start!");
   if (!initSuccess) {
     Serial.println("Could not init Hardware Abastraction Layer Properly!");
@@ -107,6 +197,20 @@ void setup() {
 
   }
 
+
+  
+
+  //Hardware enable
+  pinMode(encButton,INPUT_PULLUP);
+  pinMode(LED_BUILTIN_RED,OUTPUT);
+  pinMode(LED_BUILTIN_GREEN,OUTPUT);
+  pinMode(LED_BUILTIN_BLUE,OUTPUT);
+  
+  OxCore::TaskProperties cogProperties;
+  cogProperties.name = "cog";
+  cogProperties.id = 20;
+  cogProperties.state_and_config = (void *) getConfig();
+  delay(1000);
   Serial.println("About to run test!");
 
   // Now we have a problem; we want 3 configurations for 3 different
@@ -257,11 +361,26 @@ void setup() {
   core.DEBUG_CORE = 2;
 
   OxCore::Debug<const char *>("Added tasks\n");
+  
+  OxCore::Debug<const char *>("Heater PID Controller");
+  lcd.begin(20,4);
+  nav.idleTask=idle;//point a function to be used when menu is suspended
+  mainMenu[1].enabled=disabledStatus;
+  nav.showTitle=false;
+  lcd.setCursor(0, 0);
+  lcd.print("Heater PID Controller");
+  lcd.setCursor(0, 1);
+  lcd.print("r-site.net");
+  Timer1.initialize(1000);
+  Timer1.attachInterrupt(timerIsr);
 }
 
 void loop() {
   OxCore::Debug<const char *>("Loop starting...\n");
-
+  nav.poll();
+  digitalWrite(LED_BUILTIN_RED, ledCtrlRed);
+  digitalWrite(LED_BUILTIN_GREEN, ledCtrlGreen);
+  digitalWrite(LED_BUILTIN_BLUE, ledCtrlBlue);
   delay(100);
   // Blocking call
   if (core.Run() == false) {

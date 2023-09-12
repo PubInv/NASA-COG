@@ -61,6 +61,49 @@ namespace OxApp
     return new_ms;
   }
 
+  float StateMachineManager::computeFanSpeed(float t) {
+    float f;
+    float p = MachineConfig::FULL_POWER_FOR_FAN;
+    float s = MachineConfig::FAN_SPEED_AT_OPERATING_TEMP;
+    float d = MachineConfig::TEMP_TO_BEGIN_FAN_SLOW_DOWN;
+    float e = MachineConfig::END_FAN_SLOW_DOWN;
+    float h = MachineConfig::OPERATING_TEMP;
+    float r = MachineConfig::RED_TEMP;
+    float y = MachineConfig::YELLOW_TEMP;
+    if (t < d) {
+      f = p;
+    } else if (t >= d && t < y) {
+      f = p - (p - s) * ((t - d) / (h - d));
+    } else  { // t > y
+      f = s + ((t - y) / (r - y)) * (1.0 - s);
+    }
+    return f;
+  }
+  float StateMachineManager::computeAmperage(float t) {
+    return MachineConfig::MAX_AMPERAGE *
+      ((t < MachineConfig::YELLOW_TEMP)
+       ?  1.0
+       : MachineConfig::MAX_AMPERAGE * max(0,MachineConfig::RED_TEMP - t) /
+       (MachineConfig::RED_TEMP - MachineConfig::YELLOW_TEMP));
+  }
+
+
+  float StateMachineManager::computeRampUpTargetTemp(float t,float recent_t,unsigned long begin_up_time_ms) {
+    unsigned long ms = millis();
+    const unsigned long MINUTES_RAMPING_UP = (ms - begin_up_time_ms) / (60 * 1000);
+    float tt = recent_t + MINUTES_RAMPING_UP * MachineConfig::RAMP_UP_TARGET_D_MIN;
+    tt = min(tt,MachineConfig::OPERATING_TEMP);
+    return tt;
+  }
+  float StateMachineManager::computeRampDnTargetTemp(float t,float recent_t,unsigned long begin_dn_time_ms) {
+    unsigned long ms = millis();
+    const unsigned long MINUTES_RAMPING_DN = (ms - begin_dn_time_ms) / (60 * 1000);
+
+    float tt =
+     recent_t - MINUTES_RAMPING_DN * MachineConfig::RAMP_DN_TARGET_D_MIN;
+    tt = max(tt,MachineConfig::STOP_TEMPERATURE);
+    return t;
+  }
 
   MachineState CogTask::_updatePowerComponentsWarmup() {
     MachineState new_ms = Warmup;
