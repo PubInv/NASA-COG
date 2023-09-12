@@ -44,10 +44,13 @@ using namespace OxCore;
 // #include <serial_task.h>
 #include <stage2_serial_task.h>
 #include <temp_refresh_task.h>
+#ifdef DISPLAY_ENABLED = 1
+
 #include <menuIO/U8x8Out.h>
 #include <TimerOne.h>
 #include <ClickEncoder.h>
 #include <menuIO/clickEncoderIn.h>
+#endif
 using namespace Menu;
 
 
@@ -343,11 +346,13 @@ void setup() {
 
 void loop() {
   OxCore::Debug<const char *>("Loop starting...\n");
+#ifdef DISPLAY_ENABLED
   nav.poll();
   digitalWrite(LED_BUILTIN_RED, ledCtrlRed);
   digitalWrite(LED_BUILTIN_GREEN, ledCtrlGreen);
   digitalWrite(LED_BUILTIN_BLUE, ledCtrlBlue);
   delay(100);
+#endif
   // Blocking call
   if (core.Run() == false) {
     OxCore::ErrorHandler::Log(OxCore::ErrorLevel::Critical, OxCore::ErrorCode::CoreFailedToRun);

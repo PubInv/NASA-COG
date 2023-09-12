@@ -36,7 +36,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
    DAC0 - the stack
    D4 - MAX31850_DATA_PIN
 */
-
+#ifdef ARDUINO
 #include <Arduino.h>
 #endif
 
@@ -60,7 +60,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #include <machine_core_defs.h>
 
 #ifdef STAGE2_HEATER
-
 #include <stage2_config.h>
 #endif
 
