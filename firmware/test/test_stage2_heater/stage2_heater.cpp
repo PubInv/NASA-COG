@@ -171,10 +171,6 @@ void setup() {
   bool initSuccess  = s2hal->init();
   encoderIn<encA,encB> encoder;//simple quad encoder driver
   
-  
-  
-  machineConfig = new MachineConfig();
-
   getConfig()->hal = new Stage2HAL();
 
   getConfig()->ms = Off;
