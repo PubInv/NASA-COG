@@ -22,6 +22,8 @@
 
 #include <machine.h>
 
+//#define DISPLAY_ENABLED
+
 //#define RF_FAN 2
 //#define _HEATER 3
 //#define _STACK DAC0
@@ -32,7 +34,7 @@
 // #define RF_FAN_TACH 5
 //#define RF_MOSTPLUS_FLOW_PIN A0
 //#define RF_MOSTPLUS_FLOW_LOW_CUTOFF_VOLTAGE 1.75
-
+//(MAXCLK, MAXCS, MAXDO);
 #define BEEPER_PIN 37 // buzzer pin
 //#define U8_MISO 50
 //#define U8_MOSI 51
@@ -67,7 +69,7 @@ D49 HEAT3			Output		Positive SSR signal for heater PID
 #define LED_BUILTIN_RED    37 //active high
 #define LED_BUILTIN_GREEN  23 //active high
 #define LED_BUILTIN_BLUE   53 //active high
-// This is the order in which the thermocouples are wired;
+
 // in a perfect world we might use device address
 //#define POST_STACK_0_IDX 0
 //#define POST_HEATER_0_IDX 1

@@ -36,7 +36,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
    DAC0 - the stack
    D4 - MAX31850_DATA_PIN
 */
-
 #ifdef ARDUINO
 #include <Arduino.h>
 #endif
@@ -45,10 +44,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #define RF_FAN 2
 #define RF_HEATER 3
 #define RF_STACK DAC0
-// This should change to PIN 5 when
-// we get the planned control board.
-#define MAX31850_DATA_PIN 4
-//#define MAX31850_DATA_PIN 5
+#define MAX31850_DATA_PIN 5
 // #define RF_FAN_TACH 5
 #define RF_MOSTPLUS_FLOW_PIN A0
 #define RF_MOSTPLUS_FLOW_LOW_CUTOFF_VOLTAGE 1.75
@@ -64,7 +60,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #include <machine_core_defs.h>
 
 #ifdef STAGE2_HEATER
-
 #include <stage2_config.h>
 #endif
 
