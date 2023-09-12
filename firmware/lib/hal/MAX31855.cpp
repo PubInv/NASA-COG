@@ -37,7 +37,7 @@ namespace Temperature {
   int8_t  postStackThermometer  = 0;
 
   MAX31855Temperature::MAX31855Temperature(SensorConfig &config) {
-	thermocouple = Adafruit_MAX31855(int8_t _sclk, int8_t _cs, int8_t _miso);
+	
     thermocouple.begin();
     // Pass our oneWire reference to Dallas Temperature.
 

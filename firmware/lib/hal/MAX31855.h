@@ -41,8 +41,9 @@ namespace Temperature {
     SensorConfig _config;
     float _temperature;
 	// Initialize the Thermocouple pinout  _sclk,  _cs,  _miso
-	Adafruit_MAX31855* thermocouple;
-
+	Adafruit_MAX31855 ext1_thermocouple(MAXCLK, EXT1_MAXCS, MAXDO);
+	Adafruit_MAX31855 ext2_thermocouple(MAXCLK, EXT2_MAXCS, MAXDO);
+	Adafruit_MAX31855 int1_thermocouple(MAXCLK, INT1_MAXCS, MAXDO);
   public:
     MAX31855Temperature(OxApp::Model& m,SensorConfig &config);
     MAX31855Temperature(SensorConfig &config);
