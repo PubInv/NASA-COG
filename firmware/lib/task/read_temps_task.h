@@ -30,7 +30,7 @@
 
 #ifdef USE_MAX31850_THERMOCOUPLES
 #include <MAX31850.h>
-#else
+#elseif USE_DS18B20_TEMPERATURE
 #include <DS18B20_temperature.h>
 #endif
 
