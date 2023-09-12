@@ -67,7 +67,7 @@ D49 HEAT3			Output		Positive SSR signal for heater PID
 #define LED_BUILTIN_RED    37 //active high
 #define LED_BUILTIN_GREEN  23 //active high
 #define LED_BUILTIN_BLUE   53 //active high
-// This is the order in which the thermocouples are wired;
+
 // in a perfect world we might use device address
 //#define POST_STACK_0_IDX 0
 //#define POST_HEATER_0_IDX 1
