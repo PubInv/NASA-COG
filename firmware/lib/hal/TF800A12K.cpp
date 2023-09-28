@@ -360,9 +360,13 @@ void SL_PS::updateAmperage(float amperage, MachineConfig *config) {
   MachineStatusReport *msr = config->report;
   uint16_t amps = (uint16_t) (amperage * 100.0);
 
+    if (DEBUG_SL_PS > 0) {
+    Serial.print("Setting SL_PS_Current: ");
+    Serial.println(amps);
+  }
   int ret_val = setPS_Current(this->address, amps);
   if (!ret_val) {
-    Serial.println("FAILED TO SET VOLTAGE!");
+    Serial.println("FAILED TO SET CURRENT!");
   }
   // I don't like to use delay but I think some time is needed here...
   delay(10);

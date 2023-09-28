@@ -153,9 +153,18 @@ public:
   // state manager, I need this gloabl.
   float GLOBAL_RECENT_TEMP = 30.0;
 
+<<<<<<< Updated upstream
   const float MAX_STACK_VOLTAGE = 12.0;
   static constexpr float IDLE_STACK_VOLTAGE = 1.0;
   static constexpr float MIN_OPERATING_STACK_VOLTAGE = 1.0;
+=======
+  float STACK_VOLTAGE = 12.0;
+  // NOTE: The MINIMUM_FORWAD_BIAS_STACK_VOLTAGE is the minimum voltage
+  // when the machine is on. This limit supercedes the amperage
+  // limit and the wattage limit.
+  static constexpr float MINIMUM_FORWAD_BIAS_STACK_VOLTAGE = 1.0;
+  static constexpr float MINIMUM_REALISTIC_RESISTANCE = 0.2;
+>>>>>>> Stashed changes
 
   //
   // Note: The MAX31850, OneWire system, and the MAX31855, both,
@@ -175,6 +184,22 @@ public:
 
   // Duty Cycle Adjustment Period is how often we will adject
   const int DUTY_CYCLE_ADJUSTMENT_PERIOD_MS = 30000;
+<<<<<<< Updated upstream
+=======
+  // This is the number of periods around a point in time we will
+  // average to produce a smooth temperature. (Our thermocouples have
+  // only 0.25 C resolution, which is low for a 0.5C/minute control
+  // situation!) These are always taken to be BACKWARD in time.
+  // This is used in the current code, but what is used for
+  // is not used.
+  const int NUMBER_OF_PERIODS_TO_AVERAGE = 4;
+  // Ddelta is the change in temperature in C per min
+  float Ddelta_C_per_min = 0.0;
+
+  int num_duty_cycles = 0;
+
+  float MAXIMUM_STACK_AMPS = 0.0;
+>>>>>>> Stashed changes
 
   void _reportFanSpeed();
 

@@ -67,8 +67,13 @@ SerialReportTask serialReportTask;
 MachineConfig machineConfig;
 /***********************************/
 
+<<<<<<< Updated upstream
 #define ETHERNET_REQUIRED 1
 // #define ETHERNET_REQUIRED 0 //No ethernet.
+=======
+// #define REQUIRE_ETHERNET 1
+#define REQUIRE_ETHERNET 0 //No ethernet.
+>>>>>>> Stashed changes
 
 
 // This is to allow a code idiom compatible with the way
@@ -217,7 +222,11 @@ void setup()
   }
   oedcsSerialInputTask.cogTask = &cogTask;
 
+<<<<<<< Updated upstream
   if (ETHERNET_REQUIRED) {
+=======
+  if (REQUIRE_ETHERNET) {
+>>>>>>> Stashed changes
     OxCore::TaskProperties OEDCSNetworkProperties;
     OEDCSNetworkProperties.name = "OEDCSNetwork";
     OEDCSNetworkProperties.id = 24;
@@ -274,7 +283,7 @@ void setup()
   core._scheduler.DEBUG_SCHEDULER = 0;
   dutyCycleTask.DEBUG_DUTY_CYCLE = 0;
   heaterPIDTask.DEBUG_PID = 0;
-  cogTask.DEBUG_LEVEL = 0;
+  cogTask.DEBUG_LEVEL = 2;
   OEDCSNetworkTask.DEBUG_UDP = 0;
   OEDCSNetworkTask.net_udp.DEBUG_UDP = 0;
   readTempsTask.DEBUG_READ_TEMPS = 0;
