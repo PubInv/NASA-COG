@@ -41,12 +41,56 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 namespace OxApp
 {
+
+  class OneButtonControl {
+  public:
+    // Current Stack Wattage
+    float W_w = 0;
+    // Stack Input Heat (actual wattage - pumping wattage)
+    float SIH_w= 0;
+    // Computing Pumping Wattage
+    float PW_w = 0;
+    // Current Fan Speed
+    float S_p = 0;
+    // Current Total Wattage
+    float TW_w = 0;
+    // Current Heater Wattage
+    float H_w = 0;
+    // Current Temperature
+    const float T_c = MachineConfig::NOMINAL_AMBIENT_c;
+    // Operating Temperature
+    const float OT_c = MachineConfig::OPERATING_TEMPERATURE_C;
+    // Target Stack Wattage
+    float tW_w = 0;
+    // Target Heater Wattage
+    float tH_w = 0;
+    // Target Heater Temperature
+    const float tT_c = MachineConfig::OPERATING_TEMPERATURE_C;
+    // Target Fan Speed
+    float tS_p = 100.0;
+    // Heater ramp rate (degrees C per minute)
+    const float Hr_Cdm =0.5;
+    // Stack Watts ramp rate (watts per minute)
+    const float Wr_Wdm = 1;
+    // Fan speed ramp rate (% cent per minute)
+    const float Sr_Pdm = 2;
+    // Substate in terms of pausing due to problems
+    // This is an integer representing "how paused" we are.
+    // At 1 or more, we are pausing increasting the target temperature.
+    // At 2 or more, we are decreasing the fan speed on a schedule.
+    int pause_substate = 0;
+    unsigned long current_pause_began = 0;
+
+    const float DT_PAUSE_LIMIT_K = 20.0;
+    const float PAUSE_TIME_S = 10*60;
+  };
   class CogTask : public StateMachineManager
   {
   public:
     int PERIOD_MS = 10000;
     int DEBUG_LEVEL = 0;
 
+    OneButtonControl c;
     DutyCycleTask *dutyCycleTask;
     WattagePIDObject *wattagePIDObject;
 
@@ -54,6 +98,8 @@ namespace OxApp
     const static int NUM_TEMP_SENSORS = 3;
     const static int NUM_TEMP_INDICES = 2;
     const static int NUM_FANS = 1;
+
+
 
     float getTemperatureReadingA_C();
     float getTemperatureReadingB_C();
@@ -70,6 +116,10 @@ namespace OxApp
     void oneButtonAlgorithm(float &totalWattage_w,float &stackWattage_w,float &heaterWattage_w,float &fanSpeed_p);
     void runOneButtonAlgorithm();
 
+    // TODO: I think we should separate all of this
+    // computation from state machine by creating a new
+    // class for this.
+
     // The PID controller for OneButton Routine
     PID *pidControllerWattage;
     double totalWattage_Output_W = 0.0;
@@ -77,7 +127,10 @@ namespace OxApp
     double temperatureSetPoint_C = 25.0;
     double input_temperature_C = 25.0;
 
-
+    // Other "OneButton" stuff
+    const int USE_PAUSING = 1;
+    int pause_substate = 0;
+    const unsigned long curent_pause_began = 0;
 
     COG_HAL* getHAL();
 

@@ -64,11 +64,12 @@ bool DutyCycleTask::_init()
    state.
 */
 
-void DutyCycleTask::reset_duty_cycle() {
+/* void DutyCycleTask::reset_duty_cycle() {
   recorded_duty_cycle = 0;
   recorded_dc_ms = 0;
   time_of_last_check = millis();
 }
+*/
 
 // The fundamental purpose of this task is just to
 // drive the dynamic from DutyCycle of the heater.

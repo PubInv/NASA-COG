@@ -134,9 +134,10 @@ public:
 
   // These are bounds; we won't let values go outside these.
   // They can only be changed here and forcing a recompilation.
+  static constexpr float OPERATING_TEMPERATURE_C = 750.0;
   const float BOUND_MAX_TEMP = 750.0;
   const float BOUND_MIN_TEMP = 25.0;
-  const float NOMINAL_AMBIENT_c = 25.0;
+  static constexpr float NOMINAL_AMBIENT_c = 25.0;
   const float BOUND_MAX_AMPERAGE_SETTING = 60.0;
   const float BOUND_MAX_WATTAGE = 300.0;
   const float BOUND_MAX_RAMP = 3.0;

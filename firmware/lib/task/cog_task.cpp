@@ -119,7 +119,7 @@ namespace OxApp
     float y;
     float M = getConfig()->M_OBA_W;
     if (C > B) {
-      float d = C - B;
+      float d = abs(C - B);
       float Q = getConfig()->Q_OBA_C;
       y = d * M / Q + M;
     } else {
@@ -159,6 +159,7 @@ namespace OxApp
     }
   }
 
+
   void CogTask::oneButtonAlgorithm(float &totalWattage_w,float &stackWattage_w,float &heaterWattage_w,float &fanSpeed_p) {
     const float A = getTemperatureReadingA_C();
     const float B = getTemperatureReadingB_C();
@@ -170,7 +171,36 @@ namespace OxApp
                                                cur_heater_w,
                                                A,B,C,
                                                getConfig()->CURRENT_STACK_WATTAGE_W);
-    const float T = (B+C) / 2.0;
+    const float T_c = (B+C) / 2.0;
+    const float T_k = T_c + 273.15;
+
+    unsigned long time = millis();
+    if (USE_PAUSING) {
+        const float DT_K = abs(B - C);
+        if (DT_K > c.DT_PAUSE_LIMIT_K) {
+            if (c.pause_substate == 0) {
+                c.pause_substate = 1;
+                c.current_pause_began = time;
+                OxCore::Debug<const char *>("PAUSING! X and temp:");
+                OxCore::Debug<float>(A);
+            } else {
+                if (time > (c.current_pause_began + c.PAUSE_TIME_S * 1000)) {
+                    c.pause_substate++;
+                    c.current_pause_began = time;
+                    OxCore::Debug<const char *>("PAUSING! Y");
+                    OxCore::Debug<int>(c.pause_substate);
+                }
+            }
+        } else {
+            if ((c.pause_substate != 0) && (time > (c.current_pause_began + c.PAUSE_TIME_S * 1000)))
+            {
+                    c.pause_substate--;
+                    c.current_pause_began = time;
+            }
+        }
+    }
+    // This is setting the target...
+    wattagePIDObject->temperatureSetPoint_C = getConfig()->SETPOINT_TEMP_C;
 
     // We could simulate the stack wattage as a function of T,
     // or we could just use the most recently measured stack wattage...
@@ -184,7 +214,7 @@ namespace OxApp
                           min(totalWattage_w - stackWattage_w,
                               getConfig()->HEATER_MAXIMUM_WATTAGE));
 
-    fanSpeed_p = computeFanSpeedTarget(getConfig()->SETPOINT_TEMP_C, T,heaterWattage_w);
+    fanSpeed_p = computeFanSpeedTarget(getConfig()->SETPOINT_TEMP_C, T_c,heaterWattage_w);
   }
 
 
@@ -303,7 +333,6 @@ bool CogTask::updatePowerMonitor()
 
       float dc = computeHeaterDutyCycleFromWattage(heaterWattage_w);
       dutyCycleTask->dutyCycle = dc;
-      dutyCycleTask->reset_duty_cycle();
   }
 
   void CogTask::_updateCOGSpecificComponents() {
