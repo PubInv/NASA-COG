@@ -1,3 +1,7 @@
+# ARCHIVED
+
+This repo is now archived in favor of: [https://github.com/PubInv/NASA-MCOG](https://github.com/PubInv/NASA-MCOG)
+
 # NASA-COG
 
 ## Final Report
