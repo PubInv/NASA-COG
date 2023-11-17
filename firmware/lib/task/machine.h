@@ -287,15 +287,6 @@ void _reportFanSpeed();
   // Here are new parameters associated with the "One Button" algorithm
   static const int USE_ONE_BUTTON = 1; // if false, use the 5-knob approach
   const float DECREASE_STACK_WATTAGE_INCREMENT_W = 1.0;
-  // This is an absolute limit on the number of watts
-  // going into the stack (OBA = One Button Algorithm)
-  const float L_OBA_W = 180.0;
-  // This is one point on the linear stack wattage ramp.
-  // If the difference betwen our thermocouples is zero,
-  // this is the maximum watts into the stack.
-  const float M_OBA_W = 200.0;
-  // This is the maximum temperature difference on the edge we will allow
-  const float Q_OBA_C = 30.0;
 
   const float FAN_SPEED_MAX_p = 60;
   const float FAN_SPEED_MIN_p = 20;

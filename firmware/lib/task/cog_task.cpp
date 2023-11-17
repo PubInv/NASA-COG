@@ -117,15 +117,15 @@ namespace OxApp
     // here we implement a straight-line decrease in statck wattage proportional
     // to the difference C - B
     float y;
-    float M = getConfig()->M_OBA_W;
+    float M = p.M_w;
     if (C > B) {
       float d = abs(C - B);
-      float Q = getConfig()->Q_OBA_C;
+      float Q = p.Q_c;
       y = d * M / Q + M;
     } else {
       y = M;
     }
-    float L = getConfig()->L_OBA_W;
+    float L = p.L_w;
     float w = max(0.0,min(L,y));
     return min(w,targetTotalWattage);
   }

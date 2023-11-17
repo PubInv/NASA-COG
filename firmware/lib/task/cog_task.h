@@ -46,10 +46,9 @@ namespace OxApp
 // that can be tuned (before the algorithm is running).
    class PreSetParameters  {
    public:
-     const float L_w = 340; // max stack wattage
-     const float M_w = 360; // stack wattage at 0 wafer difference
-     const float Q_c = 30;  // maximum wafer difference
-     const float MA_a = 30; // maximum amperage allowed (independent of stack wattage)
+     const float L_w = 180.0; // max stack wattage
+     const float M_w = 200.0; // stack wattage at 0 wafer difference
+     const float Q_c = 30.0;  // maximum wafer difference
    };
   class OneButtonControl {
   public:
