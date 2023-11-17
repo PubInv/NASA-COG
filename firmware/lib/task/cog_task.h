@@ -42,6 +42,15 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 namespace OxApp
 {
 
+  // These are the controllable pre-set parameters to the algorithm
+// that can be tuned (before the algorithm is running).
+   class PreSetParameters  {
+   public:
+     const float L_w = 340; // max stack wattage
+     const float M_w = 360; // stack wattage at 0 wafer difference
+     const float Q_c = 30;  // maximum wafer difference
+     const float MA_a = 30; // maximum amperage allowed (independent of stack wattage)
+   };
   class OneButtonControl {
   public:
     // Current Stack Wattage
@@ -83,6 +92,10 @@ namespace OxApp
 
     const float DT_PAUSE_LIMIT_K = 20.0;
     const float PAUSE_TIME_S = 10*60;
+    // These are our ohms in the cable and the leads.
+    // I'm not entirely sure what this should be.
+    const float CABLE_O = 0.1;
+    const float NUM_WAFERS = 30;
   };
   class CogTask : public StateMachineManager
   {
@@ -91,6 +104,7 @@ namespace OxApp
     int DEBUG_LEVEL = 0;
 
     OneButtonControl c;
+    PreSetParameters p;
     DutyCycleTask *dutyCycleTask;
     WattagePIDObject *wattagePIDObject;
 
@@ -115,6 +129,8 @@ namespace OxApp
     bool heaterWattsAtFullPowerPred(float watts);
     void oneButtonAlgorithm(float &totalWattage_w,float &stackWattage_w,float &heaterWattage_w,float &fanSpeed_p);
     void runOneButtonAlgorithm();
+    float computeNernstVoltage(float T_K);
+    float computePumpingWork(float T_k,float V,float R_O, float I_A);
 
     // TODO: I think we should separate all of this
     // computation from state machine by creating a new

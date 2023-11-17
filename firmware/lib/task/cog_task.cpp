@@ -160,17 +160,33 @@ namespace OxApp
   }
 
 
+  float CogTask::computeNernstVoltage(float T_K) {
+    // P2 is the pressureized side.
+    // P2O2 is the partial pressure of O2 on the pressurized size.
+    const float ambient_psi = 15.0;
+    // There is Pure O2 on the pressure side
+    const float P2O2_psi = 1.0*ambient_psi;
+    // P1 is the process air side
+    const float P1O2_psi = 0.21*ambient_psi;
+    const float F_Cdmol = 9.64853321233100184 * (10*1000.0);
+    const float R_JdKmol = 8.31446261815324;
+    const float V = R_JdKmol * T_K * log(P2O2_psi/P1O2_psi) / (4.0 * F_Cdmol);
+    return V;
+  }
+  float CogTask::computePumpingWork(float T_K,float V,float R_O, float I_A) {
+    const float Nernst_V = computeNernstVoltage(T_K);
+    const float FIXED_V = c.CABLE_O;
+    const float Pumping_V = Nernst_V * c.NUM_WAFERS;
+    const float effectivePumping_V = max(0,Pumping_V);
+    const float Pumping_Work_W = effectivePumping_V * I_A;
+    return Pumping_Work_W;
+  }
+
   void CogTask::oneButtonAlgorithm(float &totalWattage_w,float &stackWattage_w,float &heaterWattage_w,float &fanSpeed_p) {
     const float A = getTemperatureReadingA_C();
     const float B = getTemperatureReadingB_C();
     const float C = getTemperatureReadingC_C();
 
-    totalWattage_w = computeTotalWattage(A);
-    const float cur_heater_w = getConfig()->CURRENT_HEATER_WATTAGE_W;
-    const float sw = computeTargetStackWattage(totalWattage_w,
-                                               cur_heater_w,
-                                               A,B,C,
-                                               getConfig()->CURRENT_STACK_WATTAGE_W);
     const float T_c = (B+C) / 2.0;
     const float T_k = T_c + 273.15;
 
@@ -199,8 +215,44 @@ namespace OxApp
             }
         }
     }
+
     // This is setting the target...
     wattagePIDObject->temperatureSetPoint_C = getConfig()->SETPOINT_TEMP_C;
+
+    totalWattage_w = computeTotalWattage(A);
+    const float cur_heater_w = getConfig()->CURRENT_HEATER_WATTAGE_W;
+    const float sw = computeTargetStackWattage(totalWattage_w,
+                                               cur_heater_w,
+                                               A,B,C,
+                                               getConfig()->CURRENT_STACK_WATTAGE_W);
+
+
+    float R_O = getConfig()->report->stack_ohms;
+
+    const float actualWattage = getConfig()->report->stack_watts;
+
+    const float limitedWattage = min(actualWattage,
+                                     p.L_w);
+
+    c.W_w = limitedWattage;
+    // Now we want to compute the part of the limitedWattage that adds heat
+    // to the system...
+    // We compute the stack amperage from the limitedWattage....
+    const float I_A = getConfig()->report->stack_watts;
+    const float V = getConfig()->report->stack_voltage;
+    // The fact that the working wattage can be computed as higher than
+    // limitedWattage is clearly a sign that the physical model here is wrong,
+    // but it seems to happen only at low wattages...
+    const float PW_W = min(limitedWattage,computePumpingWork(T_k,V,R_O,I_A));
+
+    c.PW_w = PW_W;
+//    console.assert(PW_W <= limitedWattage);
+    const float input_heat = limitedWattage - PW_W;
+    c.H_w = min(totalWattage_w - input_heat,MachineConfig::HEATER_MAXIMUM_WATTAGE);
+    c.SIH_w = input_heat;
+    c.H_w = max(0,c.H_w);
+    c.tW_w = limitedWattage;
+    c.TW_w = totalWattage_w;
 
     // We could simulate the stack wattage as a function of T,
     // or we could just use the most recently measured stack wattage...
